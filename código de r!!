@@ -1,0 +1,265 @@
+# cosas iniciales
+
+cat("\014")       
+rm(list = setdiff(ls(), lsf.str()));
+rm(list=lsf.str());
+
+#library("lattice")
+library("ggplot2")
+#library("latex2exp")
+#library("pracma")
+#library("readxl")
+#library("dplyr")
+#library("scales")
+#library("RColorBrewer")
+#library("gridExtra")
+library("splus2R")
+
+cat("\014")
+#a = seq(0,10,0.1)
+cat("No meter código de Word a la Consola")
+
+uwu <- theme_minimal() +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5),
+        axis.line = element_line(size = 1),
+        axis.ticks = element_line(size = 1),
+        panel.background = element_rect(fill = "white"))
+
+export <- theme(
+  plot.title = element_text(color = "white", size = 24),
+  axis.text = element_text(color = "white", size = 12),
+  axis.title = element_text(color = "white", size = 17),
+  axis.line = element_line(color = "white"),
+  axis.ticks = element_line(color = "white"),
+  legend.text = element_text(color = "white"),
+  panel.grid.major = element_line(color = "grey50", size = 0.2),
+  panel.grid.minor = element_line(color = "grey20", size = 0.1),
+  panel.background = element_rect(fill = "black")
+)
+
+setwd("C:/Users/verde/Desktop/tadeo xd/UNI/física/1er año/2do cuatrimestre/física experimental I/final")
+
+# < >
+
+################################################################################
+
+# estimación de l con períodos llll, y datitos medidos
+
+spaghetti = read.csv("period l.txt", header = T, se = ",")
+spaghetti = spaghetti[ ,-3]
+head(spaghetti)
+
+t = mean(spaghetti$t)
+dt = sd(spaghetti$t)
+
+ggplot(data = spaghetti, aes(x = t)) +
+  geom_histogram(fill = 'purple', color = 'black') +
+  labs(title = 'Histograma de períodos', x = 'Períodos [s]', y = 'Frecuencia') +
+  uwu
+
+cat(paste("Período: T =", t, "±", dt, "s"))
+
+
+g_raga = 9.79316985
+d_g_raga = 0.0000002
+l = (g_raga * t^2) / (4 * pi^2)
+l
+
+r_11 = 1.39
+r_12 = 0.976
+r_13 = 0.473
+r_14_15 = 0.01
+dr = 0.001
+
+################################################################################
+
+# carga y acomodo de datos
+
+gnocchi = read.csv("datti undici (sotto) puliti.txt", header = T, sep = ",")
+
+gnocchi$ax = gnocchi$ax *(-1)
+gnocchi = gnocchi[gnocchi$ax >= -30, ]
+
+head(gnocchi, n = 10)
+gnocchi[1450:1550, ]
+max(gnocchi$t)
+
+ggplot(data = gnocchi, aes(x = t, y = ax)) +
+  geom_point(size = 1, color = "purple", alpha = 0.5) +
+  labs(x = "Tiempo [s]", y = "Aceleración radial [m/s^2]", title = "Aceleración radial", color = "") +
+  uwu
+
+################################################################################
+
+# pedacito para poder cambiarle libremente los intervalores de tiempo de la gráfica anterior :)
+
+spatzle = gnocchi[gnocchi$t >= 40 & gnocchi$t <= 150, ]
+nn = mm[mm$t >= 40 & mm$t <= 150, ]
+
+# para dieci: probar con t >= 4.5 y t <= 6.2 para ver la oscilación número 3 registrada
+# para undici (sotto): probar con t >= 12.7 y t <= 14.7 para ver la oscilación número 7 registrada
+
+ggplot() +
+  geom_point(data = spatzle, aes(x = t, y = ax), size = 1, color = "purple", alpha = 0.5) +
+  geom_point(data = nn, aes(x = t, y = ar, colour = ar_tipo), size = 3, shape = 1) +
+  labs(x = "Tiempo [s]", y = "Aceleración radial [m/s^2]", title = "Aceleración radial, con extremos", color = "") +
+  uwu
+
+################################################################################
+
+# codigización de aceleraciones extremas (máximas y mínimas, locales :P)
+
+max = peaks(gnocchi$ax, span = 81, strict = F)
+min = peaks(-gnocchi$ax, span = 83, strict = F)
+
+ax_max = gnocchi$ax[max]
+t_max = gnocchi$t[max]
+ax_min = gnocchi$ax[min]
+t_min = gnocchi$t[min]
+
+mm = data.frame(t = c(t_max, t_min),
+                ar = c(ax_max, ax_min),
+                ar_tipo = c(
+                  rep("Máximo", length(ax_max)), 
+                  rep("Mínimo", length(ax_min))
+                             )
+                )
+mm = mm[order(mm$ar_tipo), ]
+
+head(mm, n = 7)
+
+ggplot() +
+  geom_point(data = gnocchi, aes(x = t, y = ax), size = 1, color = "purple", alpha = 0.5) +
+  geom_point(data = mm, aes(x = t, y = ar, colour = ar_tipo), size = 3, shape = 1) +
+  labs(x = "Tiempo [s]", y = "Aceleración radial [m/s^2]", title = "Aceleración, con extremos", color = "") +
+  uwu
+
+################################################################################
+
+# ¡¡¡¡¡cambiar el r al cambiar de archivo!!!!!  cálculo de la amplitud
+
+g = median(gnocchi$ax)
+g
+
+mm$θ_0 = ifelse(mm$ar_tipo == "Mínimo",
+                acos(mm$ar / g),
+                acos((((-1) * l * (mm$ar / g)) / (2 * g * r_11)) + 1)
+                )   
+
+sum(is.na(mm$θ_0))
+head(mm$θ_0 * (180/pi))
+length(mm$t)
+mm[400:405, ]
+
+ggplot() +
+  geom_point(data = mm, aes(x = t, y = θ_0 * (180/pi), colour = ar_tipo), size = 3, shape = 1) +
+  labs(x = "Tiempo [s]", y = "Ángulo [grados]", title = "Amplitud local (en el tiempo)", color = "") +
+  uwu
+
+################################################################################
+
+# Encuentra el número de la última fila de gnocchi
+#length(gnocchi$t)
+#j_max <- length(gnocchi$t)
+#j_max
+
+#head(gnocchi)
+#tail(gnocchi)
+
+#gnocchi$tau <- NA                                                                                # crea la columna tau inicializada con NA
+
+## este toma bastante tiempo!!
+#for (j in 1:j_max) {                                                                             # itera sobre los valores de j
+#  indice_j <- which(gnocchi$n_int == j)                                                          # encuentra los índices de las filas donde n_int es igual a j y (j+4)
+#  indice_j_mas_4 <- which(gnocchi$n_int == (j + 4))
+#  
+#  if (length(indice_j) > 0 & length(indice_j_mas_4) > 0) {                                       # verifica si se encuentran ambos índices
+#    gnocchi$tau[indice_j] <- (gnocchi$t_int[indice_j_mas_4] - gnocchi$t_int[indice_j]) / (10^6)  # verifica si se encuentran ambos índices
+#  }
+#}
+
+
+ggplot() +
+  geom_point(data = ramen, aes(x = t, y = tau), color = "purple", size = 1.2, alpha = 0.5) +
+  labs(x = "Tiempo [s]", y = "Período [s]", title = "Período en función del tiempo", color = "") +
+  uwu
+
+#k = 1
+#indice_k = which(gnocchi$n_int == k)
+#indice_k_mas_4 = which(gnocchi$n_int == (k + 4))
+#t_int_k = gnocchi$t_int[indice_k]
+#t_int_k_mas_4 = gnocchi$t_int[indice_k_mas_4]
+#diferencia_t_int <- (t_int_k_mas_4 - t_int_k) / (10^6)
+#diferencia_t_int
+
+#t_int_k_mas_4
+#t_int_k
+
+#180111368 - 176576292
+#3535076 * (10^-6)
+
+
+# manera rápida de hacerlo pero no tan bonita
+ramen = gnocchi[gnocchi$flanco == "R" | gnocchi$flanco == "F", ]
+head(ramen)
+
+length(gnocchi$t)
+n_int_max = length(gnocchi$t)
+n_int_max
+
+calcular_tau <- function(row_number) {
+  indice_j <- row_number
+  indice_j_mas_4 <- row_number + 4
+  
+  # Verifica que los índices estén dentro del rango
+  if (indice_j <= nrow(ramen) & indice_j_mas_4 <= nrow(ramen)) {
+    return(  (ramen$t_int[indice_j_mas_4] - ramen$t_int[indice_j]) / (10^6) )
+  } else {
+    return(NA)
+  }
+}
+
+# Aplica la función calcular_tau a cada fila de ramen
+ramen$tau <- sapply(1:nrow(ramen), calcular_tau)
+ramen[200:250, ]
+
+
+################################################################################
+
+# exporte de gráficas ¡¡cambiar el nombre de las fotos exportadas!!
+
+g_ar = ggplot() +
+  geom_point(data = spatzle, aes(x = t, y = ax), size = 1, color = "purple", alpha = 0.5) +
+  geom_point(data = nn, aes(x = t, y = ar, colour = ar_tipo), size = 3, shape = 1) +
+  labs(x = "Tiempo [s]", y = "Aceleración radial [m/s^2]", title = "Aceleración radial, con extremos", color = "") +
+  uwu
+
+g_amplitud = ggplot() +
+  geom_point(data = mm, aes(x = t, y = θ_0 * (180/pi), colour = ar_tipo), size = 3, shape = 1) +
+  labs(x = "Tiempo [s]", y = "Ángulo [grados]", title = "Amplitud local (en el tiempo)", color = "") +
+  uwu
+
+#g_ar
+#g_amplitud
+
+#ggsave("cr2 ar.png", plot = g_ar, width = 12, height = 8, dpi = 400)
+#ggsave("cr2 amplitud.png", plot = g_amplitud, width = 12, height = 8, dpi = 400)
+
+
+
+
+
+################################################################################
+
+# código inicial para los máximos y mínimos (no es importante)
+
+#maximos.locales = peaks(x = gnocchi$ax, span = 81, strict = F)
+#picos = gnocchi$ax[maximos.locales]
+#plot(gnocchi$t[maximos.locales], gnocchi$ax[maximos.locales])
+
+#minimos.locales = peaks(x = -gnocchi$ax, span = 83, strict = F)
+#valles = gnocchi$ax[minimos.locales]
+#plot(gnocchi$t[minimos.locales], gnocchi$ax[minimos.locales])
+
+#gnocchi$ax_max = gnocchi$ax[maximos.locales]
+#gnocchi$ax_min = gnocchi$ax[maximos.locales]
